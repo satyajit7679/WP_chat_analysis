@@ -138,7 +138,8 @@ def emojies(selected_user,df):
     return emo,new_df
 
 
-
+def p(selected_user,df):
+    if selected_user != "over all":
 
 
 
