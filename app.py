@@ -5,6 +5,10 @@ from matplotlib import pyplot as plt
 from preprocess import preprocess
 import helper
 import plotly.express as px
+import seaborn as sns
+
+
+
 
 st.sidebar.title("WP Chat Analyser")
 uploaded_file = st.sidebar.file_uploader("Choose a WhatsApp .txt file", type=["txt"])
@@ -101,6 +105,26 @@ if df is not None:
             ax.set_xlabel("month name")
             ax.set_ylabel("number of messages")
             st.pyplot(fig)
+
+        ## show heatmap
+        st.title("Show heatmap")
+        # Get processed DF
+        period_df = helper.show_heatmap(df, selected_user)
+        # Create pivot table from processed DF (period_df, not df)
+        pivot_df = period_df.pivot_table(
+            index='day_name',
+            columns='period',
+            values='user_message',
+            aggfunc='count'
+        ).fillna(0)
+        plt.figure(figsize=(20, 6))
+        sns.heatmap(pivot_df, annot=True, fmt='.0f')
+        plt.xticks(rotation=45)
+        plt.yticks(rotation=0)
+        plt.xlabel("Period")
+        plt.ylabel("Day Name")
+        plt.title("Heatmap of Messages by Day and Period")
+        st.pyplot(plt)
 
         #Most busy person in Group
         if selected_user == "over all":

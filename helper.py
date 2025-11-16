@@ -6,6 +6,7 @@ from wordcloud import WordCloud
 from collections import Counter
 import re
 import emoji
+
 extractor = URLExtract()
 def fetch_stats(selected_user, df):
 
@@ -174,6 +175,25 @@ def month_activity_map(df, selected_user):
     if selected_user != "over all":
         df= df[df['user'] == selected_user]
     return df['month_name'].value_counts()
+
+def show_heatmap(df, selected_user):
+    # Filter user
+    if selected_user != "over all":
+        df = df[df['user'] == selected_user]
+
+    df = df.copy()  # prevents SettingWithCopyWarning
+
+    period = []
+    for hour in df['hour']:
+        if hour == 23:
+            period.append(f"{hour}-00")
+        elif hour == 0:
+            period.append(f"00-{hour+1}")
+        else:
+            period.append(f"{hour}-{hour+1}")
+
+    df['period'] = period
+    return df
 
 
 
