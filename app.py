@@ -602,9 +602,16 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                     title='Top 10 Users by Question Percentage',
                     labels={'question_percentage': 'Question %', 'user': 'User'},
                     color='question_percentage',
-                    color_continuous_scale='viridis'
+                    color_continuous_scale='viridis',
+                    text='question_percentage'
                 )
-                fig.update_layout(xaxis_tickangle=-45, height=400)
+                fig.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+                fig.update_layout(
+                    xaxis_tickangle=-45,
+                    height=400,
+                    xaxis={'type': 'category'},
+                    showlegend=False
+                )
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 # Show top 10 users for comparison
@@ -616,24 +623,23 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                          "This user makes more statements. 💭" if q_percent < 15 else
                          "Balanced communication style. ⚖️"))
 
-else:
-    # Welcome screen with animation
-    st.markdown("""
-    <div style="text-align: center; padding: 50px;">
-        <h1 style="font-size: 4rem; animation: pulse 2s infinite;">📱</h1>
-        <h1 style="font-size: 3rem; 
-                   font-weight: 800;
-                   background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-                   -webkit-background-clip: text;
-                   -webkit-text-fill-color: transparent;
-                   text-align: center;
-                   margin-bottom: 2rem;
-                   animation: slideIn 0.5s ease-out;">
-            WhatsApp Chat Analyzer
-        </h1>
-        <p style="font-size: 1.2rem; color: #667eea;">Upload your WhatsApp chat export to get started!</p>
-        <p style="margin-top: 30px; color: #fafafa;">📊 Analyze messages • 📈 Track activity • 😊 View emoji stats</p>
-    </div>
-    """, unsafe_allow_html=True)
-
+    else:
+        # Welcome screen with animation
+        st.markdown("""
+            <div style="text-align: center; padding: 50px;">
+                <h1 style="font-size: 4rem; animation: pulse 2s infinite;">📱</h1>
+                <h1 style="font-size: 3rem; 
+                           font-weight: 800;
+                           background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+                           -webkit-background-clip: text;
+                           -webkit-text-fill-color: transparent;
+                           text-align: center;
+                           margin-bottom: 2rem;
+                           animation: slideIn 0.5s ease-out;">
+                    WhatsApp Chat Analyzer
+                </h1>
+                <p style="font-size: 1.2rem; color: #667eea;">Upload your WhatsApp chat export to get started!</p>
+                <p style="margin-top: 30px; color: #fafafa;">📊 Analyze messages • 📈 Track activity • 😊 View emoji stats</p>
+            </div>
+            """, unsafe_allow_html=True)
 
