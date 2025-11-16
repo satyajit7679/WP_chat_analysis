@@ -52,18 +52,17 @@ def preprocess(data: Union[str, bytes]) -> pd.DataFrame:
     df["year"] = df["date"].dt.year
     df["month"] = df["date"].dt.month
     df["day"] = df["date"].dt.day
+    df['day_name'] = df['day_name'] = df['date'].dt.day_name()
     df["hour"] = df["time"].dt.hour
     df["minute"] = df["time"].dt.minute
-
     df["month_name"] = df["month"].apply(lambda x: calendar.month_name[x] if pd.notnull(x) else "")
-
     df["only_date"] = df["date"].dt.date
     # ==================================
 
     df = df[[
         "user_message", "date", "time", "user",
         "year", "month", "day", "hour", "minute",
-        "month_name", "only_date"
+        "month_name", "only_date","day_name"
     ]]
 
     return df

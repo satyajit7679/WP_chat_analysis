@@ -67,6 +67,41 @@ if df is not None:
         plt.ylabel("No of Messages")
         st.pyplot(fig)
 
+        ## Most activity in a week
+        st.title("Activity map")
+        col1,col2 = st.columns(2)
+        with col1:
+            st.header("Most active day")
+            busy_day = helper.week_activity_map(df,selected_user)
+            colors = [
+                "teal", "olive", "navy", "maroon", "lime",
+                "orange", "purple", "green", "red", "blue",
+                "cyan", "magenta", "yellow", "brown", "pink",
+                "gold", "skyblue", "coral", "darkgreen", "violet"
+            ]
+
+            fig, ax = plt.subplots()
+            ax.bar(busy_day.index,busy_day.values,color=colors)
+            ax.set_xlabel("days name")
+            ax.set_ylabel("number of messages")
+            st.pyplot(fig)
+        with col2:
+            st.header("Most active month")
+            busy_month = helper.month_activity_map(df, selected_user)
+            colors = [
+                "gold", "skyblue", "coral", "darkgreen", "violet",
+                "teal", "olive", "navy", "maroon", "lime",
+                "orange", "purple", "green", "red", "blue",
+                "cyan", "magenta", "yellow", "brown", "pink"
+            ]
+
+            fig, ax = plt.subplots()
+            ax.bar(busy_month.index, busy_month.values, color=colors)
+            ax.set_xticklabels(busy_month.index, rotation=90)
+            ax.set_xlabel("month name")
+            ax.set_ylabel("number of messages")
+            st.pyplot(fig)
+
         #Most busy person in Group
         if selected_user == "over all":
             st.title("Most busy user")
