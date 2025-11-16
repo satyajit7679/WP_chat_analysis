@@ -199,8 +199,8 @@ if df is not None:
     # Date Range Selector
     st.sidebar.markdown("---")
     st.sidebar.subheader("📅 Date Range Filter")
-    min_date = df['date'].min().date()
-    max_date = df['date'].max().date()
+    min_date = df['date'].min()
+    max_date = df['date'].max()
 
     date_range = st.sidebar.date_input(
         "Select Date Range",
@@ -212,7 +212,7 @@ if df is not None:
 
     # Filter dataframe by date range
     if len(date_range) == 2:
-        df = df[(df['date'].dt.date >= date_range[0]) & (df['date'].dt.date <= date_range[1])]
+        df = df[(df['date'] >= date_range[0]) & (df['date'] <= date_range[1])]
 
     # User Selection
     st.sidebar.markdown("---")
