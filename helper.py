@@ -177,25 +177,103 @@ def month_activity_map(df, selected_user):
     return df['month_name'].value_counts()
 
 def show_heatmap(df, selected_user):
-    # Filter user
     if selected_user != "over all":
         df = df[df['user'] == selected_user]
-
-    df = df.copy()  # prevents SettingWithCopyWarning
-
-    period = []
+    df = df.copy()
+    periods = []
+    sort_keys = []
     for hour in df['hour']:
         if hour == 23:
-            period.append(f"{hour}-00")
+            periods.append(f"{hour}-00")
+            sort_keys.append(hour)      # 23
         elif hour == 0:
-            period.append(f"00-{hour+1}")
+            periods.append(f"00-{hour+1}")
+            sort_keys.append(hour)      # 0
         else:
-            period.append(f"{hour}-{hour+1}")
+            periods.append(f"{hour}-{hour+1}")
+            sort_keys.append(hour)      # 1-22
 
-    df['period'] = period
+    df['period'] = periods
+    df['period_sort'] = sort_keys      # store sort index
     return df
 
 
+## Question vs Statement Ratio Analysis
+def question_vs_statement(df, selected_user):
+    """
+    Analyze questions vs statements in messages
+    Returns: question_count, statement_count, question_percentage
+    """
+    if selected_user != "over all":
+        df = df[df['user'] == selected_user]
+
+    # Remove media and group notifications
+    temp = df[df['user_message'] != 'group_notification']
+    temp = temp[~temp['user_message'].isin([
+        '<Media omitted>', '<media omitted>', 'Media omitted', 'media omitted'
+    ])]
+
+    questions = 0
+    statements = 0
+
+    for msg in temp['user_message']:
+        msg = str(msg).strip()
+        if msg.endswith('?'):
+            questions += 1
+        else:
+            statements += 1
+
+    total = questions + statements
+    question_percentage = round((questions / total * 100), 2) if total > 0 else 0
+    statement_percentage = round((statements / total * 100), 2) if total > 0 else 0
+
+    return questions, statements, question_percentage, statement_percentage
+
+
+## User-wise Question vs Statement Analysis (for comparison)
+def user_question_statement_analysis(df):
+    """
+    Analyze question vs statement ratio for all users
+    Returns: DataFrame with user-wise breakdown
+    """
+    # Remove unwanted users
+    df = df[~df['user'].isin(['group_notification', 'Meta AI'])]
+
+    # Remove media messages
+    df = df[~df['user_message'].isin([
+        '<Media omitted>', '<media omitted>', 'Media omitted', 'media omitted'
+    ])]
+
+    user_data = []
+
+    for user in df['user'].unique():
+        user_df = df[df['user'] == user]
+
+        questions = 0
+        statements = 0
+
+        for msg in user_df['user_message']:
+            msg = str(msg).strip()
+            if msg.endswith('?'):
+                questions += 1
+            else:
+                statements += 1
+
+        total = questions + statements
+        question_percentage = round((questions / total * 100), 2) if total > 0 else 0
+
+        user_data.append({
+            'user': user,
+            'questions': questions,
+            'statements': statements,
+            'total_messages': total,
+            'question_percentage': question_percentage
+        })
+
+    result_df = pd.DataFrame(user_data)
+    result_df = result_df.sort_values('question_percentage', ascending=False)
+
+    return result_df
 
 
 
