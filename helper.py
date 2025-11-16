@@ -137,9 +137,38 @@ def emojies(selected_user,df):
     new_df = pd.DataFrame(Counter(emojis).most_common(10),columns=['emoji', 'count'])
     return emo,new_df
 
-
-def p(selected_user,df):
+# timeline graph
+def monthly_timeline(df, selected_user):
     if selected_user != "over all":
+        df = df[df['user'] == selected_user]
+
+    timeline = df.groupby(['year', 'month', 'month_name']).count()['user_message']
+    timeline = timeline.to_frame(name="message").reset_index()
+
+    # your loop
+    time = []
+    for i in range(timeline.shape[0]):
+        time.append(f"{timeline['month_name'][i]}-{timeline['year'][i]}")
+    timeline['time'] = time
+
+    # real date for sorting
+    timeline['date'] = pd.to_datetime(
+        timeline['year'].astype(str) + "-" + timeline['month'].astype(str) + "-01"
+    )
+
+    timeline = timeline.sort_values("date")
+    return timeline
+def daily_timeline(df, selected_user):
+    if selected_user != "over all":
+        df = df[df['user'] == selected_user]
+
+    daily = df.groupby('date').count()['user_message'].reset_index()
+    daily = daily.rename(columns={"user_message": "message"})
+    return daily
+
+
+
+
 
 
 

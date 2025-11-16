@@ -13,11 +13,11 @@ df = None
 if uploaded_file is not None:
     data = uploaded_file.read().decode("utf-8", errors="ignore")
     df = preprocess(data)
-    st.dataframe(df)
+
 
 if df is not None:
     user_list = df['user'].unique().tolist()
-
+    st.dataframe(df)
     # Remove unwanted users if present
     for u in ['group_notification', 'Meta AI']:
         if u in user_list:
@@ -30,11 +30,9 @@ if df is not None:
 
     if st.sidebar.button("Analyze"):
         num_message, words, media, links = helper.fetch_stats(selected_user, df)
-        st.title("Total sharing information")
+        st.title("Top Statistics")
+        #Total masseges
         col1, col2, col3, col4 = st.columns(4)
-
-
-
         with col1:
             st.header("Total Messages")
             st.title(num_message)
@@ -49,6 +47,27 @@ if df is not None:
             st.header("Total Links")
             st.title(links)
 
+        #Show time line graph
+        st.title("Monthly Timeline")
+        timeline = helper.monthly_timeline(df, selected_user)
+        fig, ax = plt.subplots()
+        ax.plot(timeline['date'], timeline['message'],marker='o')  # using date, not label
+        plt.xticks(rotation='vertical')
+        plt.xlabel("Date")
+        plt.ylabel("No of Messages")
+        st.pyplot(fig)
+
+        #Show daily time line graph
+        st.title("Daily Timeline")
+        daily_timeline = helper.daily_timeline(df, selected_user)
+        fig, ax = plt.subplots()
+        ax.plot(daily_timeline['date'], daily_timeline['message'],color='black', marker='o')
+        plt.xticks(rotation='vertical')
+        plt.xlabel("Date")
+        plt.ylabel("No of Messages")
+        st.pyplot(fig)
+
+        #Most busy person in Group
         if selected_user == "over all":
             st.title("Most busy user")
 
