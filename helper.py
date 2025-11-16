@@ -165,13 +165,6 @@ def daily_timeline(df, selected_user):
     daily = df.groupby('date').count()['user_message'].reset_index()
     daily = daily.rename(columns={"user_message": "message"})
     return daily
-def daily_timeline(df, selected_user):
-    if selected_user != "over all":
-        df = df[df['user'] == selected_user]
-
-    daily = df.groupby('date').count()['user_message'].reset_index()
-    daily = daily.rename(columns={"user_message": "message"})
-    return daily
 
 
 
