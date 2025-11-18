@@ -10,6 +10,7 @@ import seaborn as sns
 from datetime import datetime
 import io
 import base64
+import os
 
 # Page config
 st.set_page_config(page_title="WhatsApp Analyzer", layout="wide", initial_sidebar_state="expanded")
@@ -17,6 +18,8 @@ st.set_page_config(page_title="WhatsApp Analyzer", layout="wide", initial_sideba
 # Initialize session state
 if 'analyzed' not in st.session_state:
     st.session_state.analyzed = False
+if 'current_file' not in st.session_state:
+    st.session_state.current_file = None
 
 # Custom CSS for animations and styling
 st.markdown("""
@@ -176,14 +179,55 @@ st.sidebar.markdown("""
 </h1>
 """, unsafe_allow_html=True)
 
-uploaded_file = st.sidebar.file_uploader("📁 Choose a WhatsApp .txt file", type=["txt"])
+DEMO_DATASET_PATH = "WhatsApp Chat with BCA friend zone .txt"
+
+# File upload section with demo option
+st.sidebar.markdown("### 📂 Data Source")
+data_source = st.sidebar.radio(
+    "Choose data source:",
+    ["Upload File", "Use Demo Dataset"],
+    key="data_source"
+)
 
 df = None
-if uploaded_file is not None:
-    with st.spinner('🔄 Processing your chat...'):
-        data = uploaded_file.read().decode("utf-8", errors="ignore")
-        df = preprocess(data)
-    st.sidebar.success("✅ File loaded successfully!")
+
+if data_source == "Upload File":
+    uploaded_file = st.sidebar.file_uploader("📁 Choose a WhatsApp .txt file", type=["txt"])
+
+    if uploaded_file is not None:
+        # Check if it's a new file
+        file_id = uploaded_file.name + str(uploaded_file.size)
+        if st.session_state.current_file != file_id:
+            st.session_state.analyzed = False
+            st.session_state.current_file = file_id
+
+        with st.spinner('🔄 Processing your chat...'):
+            data = uploaded_file.read().decode("utf-8", errors="ignore")
+            df = preprocess(data)
+        st.sidebar.success("✅ File loaded successfully!")
+
+elif data_source == "Use Demo Dataset":
+    # Check if switching to demo dataset
+    if st.session_state.current_file != "demo_dataset":
+        st.session_state.analyzed = False
+        st.session_state.current_file = "demo_dataset"
+
+    # Load demo dataset
+    if os.path.exists(DEMO_DATASET_PATH):
+        try:
+            with st.spinner('🔄 Loading demo dataset...'):
+                with open(DEMO_DATASET_PATH, 'r', encoding='utf-8', errors='ignore') as f:
+                    data = f.read()
+                df = preprocess(data)
+            st.sidebar.success("✅ Demo dataset loaded successfully!")
+            st.sidebar.info("💡 This is a sample dataset for demonstration purposes.")
+        except Exception as e:
+            st.sidebar.error(f"❌ Error loading demo dataset: {str(e)}")
+            st.sidebar.warning("⚠️ Please check the file path in the code.")
+    else:
+        st.sidebar.error(f"❌ Demo dataset not found at: {DEMO_DATASET_PATH}")
+        st.sidebar.warning("⚠️ Please add the demo dataset file or change the path in the code.")
+        st.sidebar.info("📌 Look for 'DEMO_DATASET_PATH' variable in the code to set the correct path.")
 
 if df is not None:
     user_list = df['user'].unique().tolist()
@@ -195,24 +239,6 @@ if df is not None:
 
     user_list.sort()
     user_list.insert(0, 'over all')
-
-    # Date Range Selector
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("📅 Date Range Filter")
-    min_date = df['date'].min()
-    max_date = df['date'].max()
-
-    date_range = st.sidebar.date_input(
-        "Select Date Range",
-        value=(min_date, max_date),
-        min_value=min_date,
-        max_value=max_date,
-        key="date_range"
-    )
-
-    # Filter dataframe by date range
-    if len(date_range) == 2:
-        df = df[(df['date'] >= date_range[0]) & (df['date'] <= date_range[1])]
 
     # User Selection
     st.sidebar.markdown("---")
@@ -228,13 +254,15 @@ if df is not None:
         if compare_users:
             compare_user = st.sidebar.selectbox("Compare with:", compare_users, key="compare_select")
 
+    # Analyze button - prominently placed
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 🚀 Ready to Analyze?")
+    if st.sidebar.button("🚀 ANALYZE CHAT", type="primary", use_container_width=True, key="analyze_btn"):
+        st.session_state.analyzed = True
+
     # Show raw data
     with st.expander("📊 View Raw Data"):
         st.dataframe(df, use_container_width=True)
-
-    # Analyze button
-    if st.sidebar.button("🚀 Analyze", type="primary", key="analyze_btn"):
-        st.session_state.analyzed = True
 
     if st.session_state.analyzed:
 
@@ -297,7 +325,6 @@ if df is not None:
         summary_text = f"""WhatsApp Chat Analysis Summary
 {'=' * 60}
 User: {selected_user}
-Date Range: {date_range[0] if len(date_range) == 2 else min_date} to {date_range[1] if len(date_range) == 2 else max_date}
 
 📊 STATISTICS
 {'─' * 60}
@@ -427,7 +454,7 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
         # Heatmap
         st.markdown("---")
-        st.subheader("🔥 Activity Heatmap")
+        st.subheader("🔥 Most Active User Time Period")
         period_df = helper.show_heatmap(df, selected_user)
         pivot_df = period_df.pivot_table(
             index='day_name',
@@ -483,51 +510,59 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         st.subheader("💬 Word Analysis")
         st_words = helper.most_common_words(df, selected_user)
 
-        col1, col2 = st.columns(2)
+        # Check if there are any words to analyze
+        if st_words.empty or len(st_words) == 0:
+            st.warning(
+                f"⚠️ No text messages found for {selected_user}. This user may have only sent media or has no messages.")
+        else:
+            col1, col2 = st.columns(2)
 
-        with col1:
-            st.markdown("### ☁️ WordCloud")
-            wc_img = helper.wc_stats(selected_user, df)
-            fig, ax = plt.subplots(figsize=(10, 8))
-            ax.imshow(wc_img, interpolation='bilinear')
-            ax.axis('off')
+            with col1:
+                st.markdown("### ☁️ WordCloud")
+                try:
+                    wc_img = helper.wc_stats(selected_user, df)
+                    fig, ax = plt.subplots(figsize=(10, 8))
+                    ax.imshow(wc_img, interpolation='bilinear')
+                    ax.axis('off')
+                    plt.tight_layout()
+                    st.pyplot(fig)
+
+                    st.download_button(
+                        "💾 Download",
+                        get_image_download_link(fig, "wordcloud.png"),
+                        f"wordcloud_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
+                        "image/png",
+                        key="wc_download"
+                    )
+                except ValueError:
+                    st.warning("⚠️ Not enough words to generate a word cloud for this user.")
+
+            with col2:
+                st.markdown("### 📝 Top 20 Words")
+                st.dataframe(st_words, use_container_width=True, height=400)
+
+            # Common Words Bar Chart
+            st.markdown("---")
+            st.subheader("📊 Most Common Words Chart")
+            n = len(st_words)
+            colors = plt.cm.viridis(np.linspace(0, 1, n))
+
+            fig, ax = plt.subplots(figsize=(12, 10))
+            bars = ax.barh(st_words['word'], st_words['count'], color=colors)
+            ax.invert_yaxis()
+            ax.set_xlabel("Frequency", fontsize=12, fontweight='bold')
+            ax.set_ylabel("Words", fontsize=12, fontweight='bold')
+            ax.grid(axis='x', alpha=0.3, linestyle='--')
             plt.tight_layout()
             st.pyplot(fig)
 
             st.download_button(
-                "💾 Download",
-                get_image_download_link(fig, "wordcloud.png"),
-                f"wordcloud_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
+                "💾 Download Chart",
+                get_image_download_link(fig, "common_words.png"),
+                f"common_words_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
                 "image/png",
-                key="wc_download"
+                key="words_download"
             )
-
-        with col2:
-            st.markdown("### 📝 Top 20 Words")
-            st.dataframe(st_words, use_container_width=True, height=400)
-
-        # Common Words Bar Chart
-        st.markdown("---")
-        st.subheader("📊 Most Common Words Chart")
-        n = len(st_words)
-        colors = plt.cm.viridis(np.linspace(0, 1, n))
-
-        fig, ax = plt.subplots(figsize=(12, 10))
-        bars = ax.barh(st_words['word'], st_words['count'], color=colors)
-        ax.invert_yaxis()
-        ax.set_xlabel("Frequency", fontsize=12, fontweight='bold')
-        ax.set_ylabel("Words", fontsize=12, fontweight='bold')
-        ax.grid(axis='x', alpha=0.3, linestyle='--')
-        plt.tight_layout()
-        st.pyplot(fig)
-
-        st.download_button(
-            "💾 Download Chart",
-            get_image_download_link(fig, "common_words.png"),
-            f"common_words_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
-            "image/png",
-            key="words_download"
-        )
 
         # Emoji Analysis
         st.markdown("---")
@@ -554,7 +589,6 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                 fig.update_traces(textposition='inside', textinfo='percent+label', textfont_size=14)
                 fig.update_layout(showlegend=True, height=500)
                 st.plotly_chart(fig, use_container_width=True)
-
 
         # Question vs Statement Analysis
         st.markdown("---")
@@ -638,8 +672,28 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                            animation: slideIn 0.5s ease-out;">
                     WhatsApp Chat Analyzer
                 </h1>
-                <p style="font-size: 1.2rem; color: #667eea;">Upload your WhatsApp chat export to get started!</p>
+                <p style="font-size: 1.2rem; color: #667eea;">Upload your WhatsApp chat export or try the demo dataset!</p>
                 <p style="margin-top: 30px; color: #fafafa;">📊 Analyze messages • 📈 Track activity • 😊 View emoji stats</p>
+                <p style="margin-top: 20px; color: #fafafa; font-size: 1.1rem;">👉 Click the <strong style="color: #667eea;">ANALYZE CHAT</strong> button in the sidebar to start!</p>
             </div>
             """, unsafe_allow_html=True)
 
+else:
+    # No data loaded
+    st.markdown("""
+        <div style="text-align: center; padding: 50px;">
+            <h1 style="font-size: 4rem; animation: pulse 2s infinite;">📱</h1>
+            <h1 style="font-size: 3rem; 
+                       font-weight: 800;
+                       background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+                       -webkit-background-clip: text;
+                       -webkit-text-fill-color: transparent;
+                       text-align: center;
+                       margin-bottom: 2rem;
+                       animation: slideIn 0.5s ease-out;">
+                WhatsApp Chat Analyzer
+            </h1>
+            <p style="font-size: 1.2rem; color: #667eea;">Upload your WhatsApp chat export or try the demo dataset!</p>
+            <p style="margin-top: 30px; color: #fafafa;">📊 Analyze messages • 📈 Track activity • 😊 View emoji stats</p>
+        </div>
+        """, unsafe_allow_html=True)
